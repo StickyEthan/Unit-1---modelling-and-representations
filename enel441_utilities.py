@@ -4,16 +4,6 @@ import matplotlib.pyplot as plt
 import math
 
 
-def partial_fraction_expansion_3nd_order_sys(num, den):
-
-    poles = np.roots(den)
-    regression_matrix = np.array([[1,1,1], [poles[1]+poles[2], poles[0]+poles[2], poles[0]+poles[1]], [poles[1]*poles[2], poles[0]*poles[2], poles[0]*poles[1]]])
-    num_vec = np.zeros(3)
-    num_vec[(3-num.shape[0]):3] = num
-
-    coefficients_vec = np.linalg.inv(regression_matrix) @ num_vec  #note @ means matrix multiply in python
-    return poles, coefficients_vec
-
 def eval_poly(poly, k):
     n = poly.shape[0] - 1
 
@@ -23,46 +13,42 @@ def eval_poly(poly, k):
     
     return p_at_k
 
+
 def enel441_partial_fraction_expansion(num, den):
+    ## returns partial fraction expansion. This function cannot deal with repeated poles. I will fail in that case.
 
     poles = np.roots(den)
-    np = poles.shape[0]
-    coeff = np.zeros(np)
+    num_poles = poles.shape[0]
+    coeff = np.zeros(num_poles, dtype=np.csingle)
 
-    for ii in range(np):
-        num = eval_poly(poles[ii])
-
-        den = 1
-        for jj in range(np-1):
+    for ii in range(num_poles):
+        nn = eval_poly(num, poles[ii])
+        dd = 1
+        for jj in range(num_poles):
             if ii != jj:
-                den *= (poles[ii] - poles[jj])
+                dd *= (poles[ii] - poles[jj])
         
-        coeff[ii] = num/den
+        coeff[ii] = nn/dd
     return poles, coeff
             
             
-
-
-    regression_matrix = np.array([[1,1,1], [poles[1]+poles[2], poles[0]+poles[2], poles[0]+poles[1]], [poles[1]*poles[2], poles[0]*poles[2], poles[0]*poles[1]]])
-    num_vec = np.zeros(3)
-    num_vec[(3-num.shape[0]):3] = num
-
-    coefficients_vec = np.linalg.inv(regression_matrix) @ num_vec  #note @ means matrix multiply in python
-    return poles, coefficients_vec
-
 def enel441_step_response(num, den, t):
-    poles, coefficients = partial_fraction_expansion_3nd_order_sys(num, den)
+    poles, coefficients = enel441_partial_fraction_expansion(num, den)
 
     # Plot the step reponse (assume initial conditions are zero)
-    out_step = coefficients[0]*np.exp(poles[0]*t) + coefficients[1]*np.exp(poles[1]*t) + coefficients[2]*np.exp(poles[2]*t)
+    N = t.shape[0]
+    out_step = np.zeros(N, dtype=np.csingle)
+    for ii in range(poles.shape[0]):
+        out_step += coefficients[ii]*np.exp(poles[ii]*t)
+    
     fig, ax = plt.subplots(1,1)
-    ax.plot(t,out_step.real)
+    ax.plot(t,out_step.real, label='Step Response')
     ax.set_title(r'Step response')
     ax.set_xlabel('Time (s)')
 
     plt.xlim(t[0], t[-1])
-    y_bottom, y_top = plt.ylim()
-    plt.ylim(0, y_top)
+    #y_bottom, y_top = plt.ylim()
+    #plt.ylim(0, y_top)
 
     return fig, ax, out_step
 
