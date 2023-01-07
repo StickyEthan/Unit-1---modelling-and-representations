@@ -32,7 +32,10 @@ def enel441_partial_fraction_expansion(num, den):
     return poles, coeff
             
             
-def enel441_step_response(num, den, t):
+def enel441_step_response(num, den, t, fig=[], ax=[]):
+    if not fig: 
+        fig, ax = plt.subplots(1,1)
+
     poles, coefficients = enel441_partial_fraction_expansion(num, den)
 
     # Plot the step reponse (assume initial conditions are zero)
@@ -41,14 +44,11 @@ def enel441_step_response(num, den, t):
     for ii in range(poles.shape[0]):
         out_step += coefficients[ii]*np.exp(poles[ii]*t)
     
-    fig, ax = plt.subplots(1,1)
     ax.plot(t,out_step.real, label='Step Response')
     ax.set_title(r'Step response')
     ax.set_xlabel('Time (s)')
 
     plt.xlim(t[0], t[-1])
-    #y_bottom, y_top = plt.ylim()
-    #plt.ylim(0, y_top)
 
     return fig, ax, out_step
 
@@ -141,16 +141,20 @@ def enel441_s_plane_plot(num_sys, den_sys, fig=[], ax=[]):
     for zz in zeros_sys:
         ax.plot(np.real(zz), np.imag(zz), 'ro')
 
-    plt.xlim(np.min(np.real(poles_sys))-0.5, np.max(np.real(poles_sys))+0.5)
-    x_left, x_right = plt.xlim()
+    x_min1 = np.min(np.real(poles_sys))-0.5
+    if zeros_sys.shape[0] > 0:
+        x_min2 = np.min(np.real(zeros_sys))-0.5
+    else: x_min2 = 0
+    x_min3 = -0.5
 
-    if x_right < 0.5:
-        x_right = 0.5
+    x_max1 = np.max(np.real(poles_sys))+0.5
+    if zeros_sys.shape[0] > 0:
+        x_max2 = np.max(np.real(zeros_sys))+0.5
+    else:
+        x_max2 = 0
+    x_max3 = 0.5
 
-    if x_left > -0.5:
-        x_left = -0.5
-
-    plt.xlim(x_left, x_right)
+    plt.xlim(np.min(np.array([x_min1, x_min2, x_min3])), np.max(np.array([x_max1, x_max2, x_max3])))
     ax.grid(True)
     ax.spines['left'].set_position('zero')
     # turn off the right spine/ticks
@@ -176,3 +180,33 @@ def roots_to_polynomial(roots_poly):
         poly = np.convolve(poly, np.array([1, -rr]))
     return np.real(poly)
 
+
+def enel441_plot_step_response_bounds_per_pole(num, den, t, ax):
+    N = t.shape[0]
+    
+    poles, coefficients = enel441_partial_fraction_expansion(num, den)
+    num_poles = poles.shape[0]
+
+    resp_poles = np.zeros((N,num_poles))
+    pole_strs = []
+    jj = 0
+    is_step_resp = False
+    for ii in range(num_poles):
+        if np.abs(poles[ii]) > 1e-10:
+            resp_poles[:,jj] = 2*np.abs(coefficients[ii])*np.exp(np.real(poles[ii])*t)  # bound is due to real portion of pole only
+            pole_strs.append('{:.2f}'.format(poles[ii]))
+            jj += 1
+        else: 
+            offset = np.abs(coefficients[ii])
+            is_step_resp = True
+    
+    if is_step_resp:
+        for ii in range(num_poles-1):
+            ax.plot(t, resp_poles[:,ii]+offset, '--', color='C'+str(ii), label='p='+pole_strs[ii])
+            ax.plot(t, -resp_poles[:,ii]+offset, '--', color='C'+str(ii))
+    else:
+        for ii in range(num_poles):
+            ax.plot(t, resp_poles[:,ii], '--', color='C'+str(ii), label='p='+pole_strs[ii])
+            ax.plot(t, -resp_poles[:,ii], '--', color='C'+str(ii))
+
+    ax.legend()  
