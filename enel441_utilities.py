@@ -212,16 +212,28 @@ def enel441_plot_step_response_bounds_per_pole(num, den, t, ax):
     ax.legend()  
 
 
-def enel441_fourier_transform(num,den,N):
+
+
+def enel441_get_reasonable_freq_range(num, den, N):
     roots_den = np.roots(den)
-    roots_num = np.roots(num)
     den_corner_freqs = np.abs(roots_den)
-    num_corner_freqs = np.abs(roots_num)
-
-    omega_min = np.min( [np.min(den_corner_freqs), np.min(num_corner_freqs)] )
-    omega_max = np.max( [np.max(den_corner_freqs), np.max(num_corner_freqs)] )
+    
+    if num.shape[0]>1:
+        roots_num = np.roots(num)   
+        num_corner_freqs = np.abs(roots_num)
+        omega_min = np.min( [np.min(den_corner_freqs), np.min(num_corner_freqs)] )
+        omega_max = np.max( [np.max(den_corner_freqs), np.max(num_corner_freqs)] )
+    else:
+        omega_min = np.min(den_corner_freqs)
+        omega_max = np.max(den_corner_freqs)
+        
     omega = np.logspace(np.log10(omega_min/100),np.log10(omega_max*100),num=N)
+    return omega
 
+
+def enel441_fourier_transform(num,den,omega):
+    N = omega.shape[0]
+    
     G_jw = np.zeros(N,dtype=np.csingle)
        
     ii = 0
@@ -242,8 +254,7 @@ def enel441_fourier_transform(num,den,N):
         #print(num_jw)
         G_jw[ii] = num_jw/den_jw
         ii += 1
-    return G_jw, omega
-
+    return G_jw
 
 def find_nearest(arr, value):
     idx = (np.abs(arr - value)).argmin()
@@ -252,11 +263,19 @@ def find_nearest(arr, value):
 
 def enel441_approximate_bode(num_sys,den_sys,omega):
     N = omega.shape[0]
-
+    
     roots_den = np.roots(den_sys)
-    roots_num = np.roots(num_sys)
     den_corner_freqs = np.abs(roots_den)
-    num_corner_freqs = np.abs(roots_num)
+    num_poles = roots_den.shape[0]
+    
+    if num_sys.shape[0]>1:
+        roots_num = np.roots(num_sys)
+        num_corner_freqs = np.abs(roots_num)
+        num_zeros = roots_num.shape[0] 
+    else:
+        num_zeros = 0
+        num_corner_freqs = []
+        roots_num = []
 
     # calculate DC offset
     dc_offset = num_sys[0]/den_sys[0]
@@ -268,13 +287,13 @@ def enel441_approximate_bode(num_sys,den_sys,omega):
 
     dc_offset = 20*np.log10(np.abs(dc_offset))
 
-    num_poles = roots_den.shape[0]
-    num_zeros = roots_num.shape[0]
 
     pole_approx_mag = np.zeros((N,num_poles))
     pole_approx_phase = np.zeros((N,num_poles))
     slope_neg = -20*np.log10(omega)
     ii = 0
+    print(num_poles)
+    print(den_corner_freqs)
     for cf in den_corner_freqs:
         corner_idx = find_nearest(omega,cf)
         pole_approx_mag[corner_idx:N,ii] = slope_neg[corner_idx:N] - slope_neg[corner_idx]
@@ -344,3 +363,52 @@ def enel441_approximate_bode(num_sys,den_sys,omega):
 
     fig.tight_layout(pad=1.5)
     plt.show()
+
+
+
+def enel441_annotated_bode_plot(num, den, omega):    
+    roots_den = np.roots(den)
+    den_corner_freqs = np.abs(roots_den)
+    
+    if num.shape[0]>1:
+        roots_num = np.roots(num)
+        num_corner_freqs = np.abs(roots_num)
+    else:
+        num_corner_freqs = np.array([])
+        
+    den_corner_freqs = np.array([])
+    num_corner_freqs = np.array([])
+    
+    corner_freq_indeces_poles = np.zeros(den_corner_freqs.shape[0], dtype=int)
+    ii = 0
+    for cf in den_corner_freqs:
+        corner_freq_indeces_poles[ii] = find_nearest(omega,cf)
+        ii += 1
+    
+    corner_freq_indeces_zeros = np.zeros(num_corner_freqs.shape[0],dtype=int)
+    ii = 0
+    for cf in num_corner_freqs:
+        corner_freq_indeces_zeros[ii] = find_nearest(omega,cf)
+        ii += 1
+
+    G_jw = enel441_fourier_transform(num,den,omega)
+    fig, ax = plt.subplots(2,1)
+    mag_plot = 20*np.log10(np.abs(G_jw))
+    ax[0].semilogx(omega, mag_plot) 
+    ax[0].set_title('Magnitude')
+    ax[0].set_xlabel('Frequency (rad)')
+    ax[0].set_ylabel('Mag (dB)')
+    ax[0].plot(omega[corner_freq_indeces_poles], mag_plot[corner_freq_indeces_poles], 'kx')
+    ax[0].plot(omega[corner_freq_indeces_zeros], mag_plot[corner_freq_indeces_zeros], 'ko')
+    
+    phase_plot = np.angle(G_jw)
+    ax[1].semilogx(omega, phase_plot)
+    ax[1].set_title('Phase')
+    ax[1].set_xlabel('Frequency (rad)')
+    ax[1].set_ylabel('Freq (rad)')
+    ax[1].plot(omega[corner_freq_indeces_poles], phase_plot[corner_freq_indeces_poles], 'kx')
+    ax[1].plot(omega[corner_freq_indeces_zeros], phase_plot[corner_freq_indeces_zeros], 'ko')
+
+    fig.tight_layout(pad=1.5)
+
+
