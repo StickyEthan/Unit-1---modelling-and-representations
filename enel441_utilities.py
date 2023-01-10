@@ -210,3 +210,137 @@ def enel441_plot_step_response_bounds_per_pole(num, den, t, ax):
             ax.plot(t, -resp_poles[:,ii], '--', color='C'+str(ii))
 
     ax.legend()  
+
+
+def enel441_fourier_transform(num,den,N):
+    roots_den = np.roots(den)
+    roots_num = np.roots(num)
+    den_corner_freqs = np.abs(roots_den)
+    num_corner_freqs = np.abs(roots_num)
+
+    omega_min = np.min( [np.min(den_corner_freqs), np.min(num_corner_freqs)] )
+    omega_max = np.max( [np.max(den_corner_freqs), np.max(num_corner_freqs)] )
+    omega = np.logspace(np.log10(omega_min/100),np.log10(omega_max*100),num=N)
+
+    G_jw = np.zeros(N,dtype=np.csingle)
+       
+    ii = 0
+    for w in omega:
+        jomega = 1j*w
+        num_jw = 0
+        jj = num.shape[0] - 1
+        for nn in num:
+            num_jw += nn*(jomega**jj)
+            jj -= 1
+        
+        den_jw = 0
+        jj = den.shape[0] - 1
+        for dd in den:
+            den_jw += dd*(jomega**jj)
+            jj -= 1
+        #print(den_jw)
+        #print(num_jw)
+        G_jw[ii] = num_jw/den_jw
+        ii += 1
+    return G_jw, omega
+
+
+def find_nearest(arr, value):
+    idx = (np.abs(arr - value)).argmin()
+    return idx
+
+
+def enel441_approximate_bode(num_sys,den_sys,omega):
+    N = omega.shape[0]
+
+    roots_den = np.roots(den_sys)
+    roots_num = np.roots(num_sys)
+    den_corner_freqs = np.abs(roots_den)
+    num_corner_freqs = np.abs(roots_num)
+
+    # calculate DC offset
+    dc_offset = num_sys[0]/den_sys[0]
+    for rr in roots_den:
+        dc_offset /= rr
+
+    for rr in roots_num:
+        dc_offset *= rr
+
+    dc_offset = 20*np.log10(np.abs(dc_offset))
+
+    num_poles = roots_den.shape[0]
+    num_zeros = roots_num.shape[0]
+
+    pole_approx_mag = np.zeros((N,num_poles))
+    pole_approx_phase = np.zeros((N,num_poles))
+    slope_neg = -20*np.log10(omega)
+    ii = 0
+    for cf in den_corner_freqs:
+        corner_idx = find_nearest(omega,cf)
+        pole_approx_mag[corner_idx:N,ii] = slope_neg[corner_idx:N] - slope_neg[corner_idx]
+        p1 = find_nearest(omega,cf/10)
+        p2 = find_nearest(omega,cf*10)
+        pole_approx_phase[p1:p2,ii] = -np.linspace(0,math.pi/2,p2-p1)
+        pole_approx_phase[p2:N,ii] = -math.pi/2
+        ii += 1
+
+    zero_approx_mag = np.zeros((N,num_zeros))
+    zero_approx_phase = np.zeros((N,num_zeros))
+    slope_pos = 20*np.log10(omega)
+    ii = 0
+    for cf in num_corner_freqs:
+        corner_idx = find_nearest(omega,cf)
+        zero_approx_mag[corner_idx:N,ii] = slope_pos[corner_idx:N] - slope_pos[corner_idx]
+        p1 = find_nearest(omega,cf/10)
+        p2 = find_nearest(omega,cf*10)
+        zero_approx_phase[p1:p2,ii] = np.linspace(0,math.pi/2,p2-p1)
+        zero_approx_phase[p2:N,ii] = math.pi/2
+        ii += 1
+
+    approx_response_mag = np.sum(pole_approx_mag, axis=1) + np.sum(zero_approx_mag, axis=1) + dc_offset
+    approx_response_phase = np.sum(pole_approx_phase, axis=1) + np.sum(zero_approx_phase, axis=1)
+
+    fig, ax = plt.subplots(num_poles+num_zeros+1,2, figsize=(6.4*2,(num_poles+num_zeros+1)*2))
+    for ii in range(num_poles):
+        ax[ii,0].semilogx(omega,pole_approx_mag[:,ii], label='pole={:.2f}'.format(roots_den[ii]))
+        ax[ii,0].legend()
+        ax[ii,0].set_xlabel('Frequency (rad)')
+        ax[ii,0].set_ylabel('Mag (dB)')
+        ax[ii,0].set_title('Magnitude - Pole Approximation')
+
+        ax[ii,1].semilogx(omega,pole_approx_phase[:,ii], label='pole={:.2f}'.format(roots_den[ii]))
+        ax[ii,1].legend()
+        ax[ii,1].set_xlabel('Frequency (rad)')
+        ax[ii,1].set_ylabel('Freq (rad)')
+        ax[ii,1].set_title('Phase - Pole Approximation')
+
+    for ii in range(num_zeros):
+        ax[num_poles+ii,0].semilogx(omega,zero_approx_mag[:,ii], label='zero={:.2f}'.format(roots_num[ii]))
+        ax[num_poles+ii,0].legend()
+        ax[num_poles+ii,0].set_xlabel('Frequency (rad)')
+        ax[num_poles+ii,0].set_ylabel('Mag (dB)')
+        ax[num_poles+ii,0].set_title('Magnitude - Zero Approximation')
+
+        ax[num_poles+ii,1].semilogx(omega,zero_approx_phase[:,ii], label='zero={:.2f}'.format(roots_num[ii]))
+        ax[num_poles+ii,1].legend()
+        ax[num_poles+ii,1].set_xlabel('Frequency (rad)')
+        ax[num_poles+ii,1].set_ylabel('Freq (rad)')
+        ax[num_poles+ii,1].set_title('Phase - Zero Approximation')
+
+    G_jw = enel441_fourier_transform(num_sys,den_sys,omega)
+    ax[num_poles+num_zeros,0].semilogx(omega,20*np.log10(np.absolute(G_jw)), label='Actual')
+    ax[num_poles+num_zeros,0].semilogx(omega,approx_response_mag, label='Approximation')
+    ax[num_poles+num_zeros,0].set_title('Magnitude Response of System')
+    ax[num_poles+num_zeros,0].set_xlabel('Frequency (rad)')
+    ax[num_poles+num_zeros,0].set_ylabel('Magnitude (dB)')
+    ax[num_poles+num_zeros,0].legend()
+
+    ax[num_poles+num_zeros,1].semilogx(omega,np.angle(G_jw), label='Actual')
+    ax[num_poles+num_zeros,1].semilogx(omega,approx_response_phase, label='Approximation')
+    ax[num_poles+num_zeros,1].set_title('Phase Response of System')
+    ax[num_poles+num_zeros,1].set_xlabel('Frequency (rad)')
+    ax[num_poles+num_zeros,1].set_ylabel('Phase (rad)')
+    ax[num_poles+num_zeros,1].legend()
+
+    fig.tight_layout(pad=1.5)
+    plt.show()
