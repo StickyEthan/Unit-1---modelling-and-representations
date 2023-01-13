@@ -1,0 +1,61 @@
+\documentclass[12pt]{article}
+
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{graphicx}      % include this line if your document contains figures
+\usepackage{enumerate}
+\usepackage{cite}
+\usepackage{circuitikz}
+\usetikzlibrary{patterns}
+\usetikzlibrary{shapes.geometric}
+
+
+\definecolor{msblue}{rgb}{0.357, 0.608, 0.835}
+\definecolor{msgreen}{rgb}{0.439, 0.678, 0.278}
+\definecolor{msred}{rgb}{0.753, 0, 0}
+\definecolor{msyellow}{rgb}{0.984, 0.737, 0.0196}
+
+
+
+\title{Assignment 1 - Models and Representations}
+\date{\today}
+%\author{Arne Dankers}
+
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+\item Read sections 1.1, 1.2 and 1.3 in the book ``Introduction to Mathematical Systems Theory", by Jan Polderman and Jan Willems. Based on the text, briefly answer the following questions:
+\begin{enumerate}
+    \item How does Willems view a model?
+    \item What is the central object specifying a mathematical model?
+    \item What are the three components of Willems' 'modelling language'?
+    \item What is the behavior of a model?
+    \item What are latent variables?
+    \item What differentiates a Dynamical System from "other" systems?
+\end{enumerate}
+\item Unit 1 contained many concepts. Create an infographic (i.e. a diagram, illustration, drawing, chart, etc.) with the following concepts on it:
+\begin{itemize}
+\item Systems in the real world
+\item Models of systems
+\item Time domain response of a system (response due to initial conditions, step response, response to any input)
+\item Representations of a system (differential equations, transfer function, state-space equations, frequency domain)
+\item Characteristics of a system (settling time, maximum overshoot, rise time, stability)
+\item Key concepts (poles, zeros)
+\item Plots (time domain response, s-plane, bode)
+\end{itemize}
+The key is that your infographic should show/illustrate the relationships between all these elements. 
+\item Find the region in the s-plane for the poles of a second order system that meets the following design requirements:
+\begin{enumerate}
+    \item Peak overshoot $\le 10$\%,
+    \item 2\% settling time $\le 5$ seconds,
+    \item Peak time $\le 0.5$ seconds. 
+\end{enumerate}
+\item Select $3$ different transfer functions that satisfy the design requirements. Plot the step responses of these three transfer functions. Plot them all on the same graph. Make sure you include a title, axis labels, and a legend on your plot. Verify that they do in fact meet the design requirements. You can use the functions in \texttt{enel441\_utilities.py} or functions from the Python \texttt{control} package to generate your plot.
+\end{enumerate}
+
+
+\end{document}
