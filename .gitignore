@@ -1,6 +1,6 @@
 ## Jupyter notebook files:
 .ipynb_checkpoints
-*/.ipynb_checkpoints/*
+/.ipynb_checkpoints/
 
 ## Runtime files:
 __pycache__/
