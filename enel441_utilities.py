@@ -50,7 +50,7 @@ def enel441_step_response(num, den, t, fig=[], ax=[]):
 
     plt.xlim(t[0], t[-1])
 
-    return fig, ax, out_step
+    return fig, ax, np.real(out_step)
 
 
 def enel441_rise_time(t, out_step, ax):
