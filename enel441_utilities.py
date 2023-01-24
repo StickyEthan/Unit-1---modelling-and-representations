@@ -134,12 +134,10 @@ def enel441_s_plane_plot(num_sys, den_sys, fig=[], ax=[]):
         fig, ax = plt.subplots(1,1)
     
     poles_sys = np.roots(den_sys)
-    for pp in poles_sys:
-        ax.plot(np.real(pp), np.imag(pp), 'bx' )
+    pole_markers = ax.scatter(np.real(poles_sys), np.imag(poles_sys), s=100, marker='x', linewidth=5 )
 
     zeros_sys = np.roots(num_sys)
-    for zz in zeros_sys:
-        ax.plot(np.real(zz), np.imag(zz), 'ro')
+    ax.scatter(np.real(zeros_sys), np.imag(zeros_sys), s=100, marker='o', linewidth=5, c=pole_markers.get_edgecolor() )
 
     x_min1 = np.min(np.real(poles_sys))-0.5
     if zeros_sys.shape[0] > 0:
