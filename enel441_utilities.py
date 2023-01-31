@@ -17,6 +17,8 @@ def eval_poly(poly, k):
 def enel441_partial_fraction_expansion(num, den):
     ## returns partial fraction expansion. This function cannot deal with repeated poles. I will fail in that case.
 
+    a0 = den[0]
+    den /= a0
     poles = np.roots(den)
     num_poles = poles.shape[0]
     coeff = np.zeros(num_poles, dtype=np.csingle)
@@ -28,7 +30,7 @@ def enel441_partial_fraction_expansion(num, den):
             if ii != jj:
                 dd *= (poles[ii] - poles[jj])
         
-        coeff[ii] = nn/dd
+        coeff[ii] = nn/dd/a0
     return poles, coeff
             
             
