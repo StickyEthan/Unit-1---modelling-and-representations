@@ -226,6 +226,9 @@ def enel441_get_reasonable_freq_range(num, den, N):
     else:
         omega_min = np.min(den_corner_freqs)
         omega_max = np.max(den_corner_freqs)
+
+    if omega_min == 0:
+        omega_min = np.sort(den_corner_freqs)[1]
         
     omega = np.logspace(np.log10(omega_min/100),np.log10(omega_max*100),num=N)
     return omega
@@ -412,3 +415,19 @@ def enel441_annotated_bode_plot(num, den, omega):
     fig.tight_layout(pad=1.5)
 
 
+
+def enel441_bode(G_jw, omega):
+    fig, ax = plt.subplots(2,1)
+    mag_plot = 20*np.log10(np.abs(G_jw))
+    ax[0].semilogx(omega, mag_plot) 
+    ax[0].set_title('Magnitude')
+    ax[0].set_xlabel('Frequency (rad)')
+    ax[0].set_ylabel('Mag (dB)')
+    
+    phase_plot = np.unwrap(np.angle(G_jw))
+    ax[1].semilogx(omega, 180/math.pi*phase_plot)
+    ax[1].set_title('Phase')
+    ax[1].set_xlabel('Frequency (rad)')
+    ax[1].set_ylabel('Phase (rad)')
+
+    fig.tight_layout(pad=1.5)
